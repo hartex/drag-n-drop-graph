@@ -1,0 +1,15 @@
+{
+  "name": "drag-n-drop-graph",
+  "version": "0.1.0",
+  "description": "Simple app for testing mxGraph and dragula capabilities together",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hartex",
+  "license": "MIT",
+  "dependencies": {
+    "dragula": "^3.7.2",
+    "mxgraph": "3.7.2-2"
+  }
+}
