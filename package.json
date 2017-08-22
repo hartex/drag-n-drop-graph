@@ -4,12 +4,16 @@
   "description": "Simple app for testing mxGraph and dragula capabilities together",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "webpack-dev-server --inline --progress"
   },
   "author": "hartex",
   "license": "MIT",
   "dependencies": {
     "dragula": "^3.7.2",
     "mxgraph": "3.7.2-2"
+  },
+  "devDependencies": {
+    "webpack": "^3.5.5",
+    "webpack-dev-server": "^2.7.1"
   }
 }
