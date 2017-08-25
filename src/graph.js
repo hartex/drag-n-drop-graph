@@ -3,50 +3,109 @@ const mx = require("mxgraph")({
     mxBasePath: "./src"
 });
 
-export function initGraph(container) {
-    /**
-     * mxGraph set up
-     * */
-    const model = new mx.mxGraphModel();
-    const graph = new mx.mxGraph(container, model);
+export class SegmentationGraph {
 
-    // Gets the default parent for inserting new cells. This
-    // is normally the first child of the root (ie. layer 0).
-    const parent = graph.getDefaultParent();
-
-    const layout = new mx.mxHierarchicalLayout(graph);
-    graph.setEnabled(false);
-    layout.execute(parent);
-
-    let mainVertex;
-    // Adds cells to the model in a single step
-    model.beginUpdate();
-    try {
-        mainVertex = graph.insertVertex(parent, null, '2 000 000', 200, 0, 80, 30);
-    }
-    finally {
-        // Updates the display
-        model.endUpdate();
+    constructor(id) {
+        this.container = document.getElementById(id);
     }
 
-    let vertexCounter = 0;
-    window.addVertex = function () {
-        safeUpdate(() => {
-            const vertex = graph.insertVertex(parent, null, 'Vertex ' + ++vertexCounter, vertexCounter * 100, 100, 80, 30);
-            graph.insertEdge(parent, null, '', mainVertex, vertex);
-            layout.execute(parent);
-        });
-    };
+    init() {
+        /**
+         * mxGraph set up
+         * */
+        const model = new mx.mxGraphModel();
+        const graph = new mx.mxGraph(this.container, model);
 
-    function safeUpdate(func) {
-        model.beginUpdate();
+        mx.mxDragSource.prototype.getDropTarget = function (graph, x, y) {
+            let cell = graph.getCellAt(x, y);
+
+            if (!graph.isValidDropTarget(cell)) {
+                cell = null;
+            }
+
+            return cell;
+        };
+
+        graph.setConnectable(true);
+        graph.setMultigraph(false);
+
+        graph.convertValueToString = function (cell) {
+            return cell.value['title'] + ' ' + cell.value['segmentValue'];
+        };
+
+        const keyHandler = new mx.mxKeyHandler(graph);
+
+        // Gets the default parent for inserting new cells. This
+        // is normally the first child of the root (ie. layer 0).
+        const parent = graph.getDefaultParent();
+
+        //const layout = new mx.mxHierarchicalLayout(graph);
+        //layout.execute(parent);
+        graph.setEnabled(false);
+
+        this.graphObj = graph;
+        return graph;
+    }
+
+    drawMainVertex() {
+        this.graphObj.getModel().beginUpdate();
         try {
-            func();
+            this.mainVertex = this.graphObj.insertVertex(
+                this.graphObj.getDefaultParent(),
+                null,
+                {
+                    title: "All clients",
+                    segmentValue: 2000000
+                },
+                300, 0, 100, 40);
         }
         finally {
-            model.endUpdate();
+            this.graphObj.getModel().endUpdate();
         }
+
+        return this.mainVertex;
     }
 
-    return graph;
+    makeDraggable(id) {
+        this.graphObj.dropEnabled = true;
+
+        const draggableElem = document.getElementById(id);
+
+        mx.mxUtils.makeDraggable(draggableElem, this.graphObj,
+            (graph, evt, cell) => {
+                graph.stopEditing(false);
+
+                const pt = graph.getPointForEvent(evt);
+                //target segment cell
+                const targetCell = graph.getCellAt(pt.x, pt.y);
+
+                if (targetCell) {
+                    graph.addCells(this.createSegmentCells(targetCell));
+                }
+            }, draggableElem);
+    }
+
+    createSegmentCells(parentCell) {
+        const parentSegmentValue = parentCell.getValue()['segmentValue'];
+
+        const leftSegmentValue = Math.floor(Math.random() * (parentSegmentValue - 1)) + 1;
+        const rightSegmentValue = parentSegmentValue - leftSegmentValue;
+
+        const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue};
+        const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue};
+
+        const parentX = parentCell.geometry.x;
+        const parentY = parentCell.geometry.y;
+
+        const leftCell = new mx.mxCell(leftSegmentObj,
+            new mx.mxGeometry(parentX - 100, parentY + 70, 150, 40), 'shape=rounded');
+        leftCell.setVertex(true);
+
+        const rightCell = new mx.mxCell(rightSegmentObj,
+            new mx.mxGeometry(parentX + 100, parentY + 70, 170, 40), 'shape=rounded');
+        rightCell.setVertex(true);
+
+        return [leftCell, rightCell]
+    }
+
 }

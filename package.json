@@ -9,7 +9,6 @@
   "author": "hartex",
   "license": "MIT",
   "dependencies": {
-    "dragula": "^3.7.2",
     "mxgraph": "3.7.2-2"
   },
   "devDependencies": {

@@ -1,14 +1,8 @@
-import {initGraph} from 'graph'
-
-const dragula = require('dragula/dist/dragula.min');
+import {SegmentationGraph} from 'graph'
 
 (() => {
-    const container = document.getElementById('graph-container');
-    const graph = initGraph(container);
-
-    /**
-     * Dragula set up
-     * */
-    const basket = document.getElementById('basket');
-    const drake = dragula([basket, container], {copy: true});
+    const graph = new SegmentationGraph('graph-container');
+    graph.init();
+    graph.drawMainVertex();
+    graph.makeDraggable('draggable');
 })();
