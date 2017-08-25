@@ -16,16 +16,6 @@ export class SegmentationGraph {
         const model = new mx.mxGraphModel();
         const graph = new mx.mxGraph(this.container, model);
 
-        mx.mxDragSource.prototype.getDropTarget = function (graph, x, y) {
-            let cell = graph.getCellAt(x, y);
-
-            if (!graph.isValidDropTarget(cell)) {
-                cell = null;
-            }
-
-            return cell;
-        };
-
         graph.setConnectable(true);
         graph.setMultigraph(false);
 
@@ -35,12 +25,10 @@ export class SegmentationGraph {
 
         const keyHandler = new mx.mxKeyHandler(graph);
 
-        // Gets the default parent for inserting new cells. This
-        // is normally the first child of the root (ie. layer 0).
-        const parent = graph.getDefaultParent();
-
+        //todo layout?
         //const layout = new mx.mxHierarchicalLayout(graph);
         //layout.execute(parent);
+
         graph.setEnabled(false);
 
         this.graphObj = graph;
@@ -57,7 +45,7 @@ export class SegmentationGraph {
                     title: "All clients",
                     segmentValue: 2000000
                 },
-                300, 0, 100, 40);
+                300, 5, 100, 40);
         }
         finally {
             this.graphObj.getModel().endUpdate();
