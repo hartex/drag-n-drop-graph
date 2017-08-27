@@ -68,13 +68,15 @@ export class SegmentationGraph {
                 const targetCell = graph.getCellAt(pt.x, pt.y);
 
                 if (targetCell) {
-                    graph.addCells(this.createSegmentCells(targetCell));
+                    const verticesToAdd = this.createSegmentVertices(targetCell);
+                    graph.addCells(verticesToAdd);
+                    this.insertSegmentEdges(targetCell, verticesToAdd);
                 }
             }, draggableElem);
     }
 
-    createSegmentCells(parentCell) {
-        const parentSegmentValue = parentCell.getValue()['segmentValue'];
+    createSegmentVertices(parentVertex) {
+        const parentSegmentValue = parentVertex.getValue()['segmentValue'];
 
         const leftSegmentValue = Math.floor(Math.random() * (parentSegmentValue - 1)) + 1;
         const rightSegmentValue = parentSegmentValue - leftSegmentValue;
@@ -82,18 +84,33 @@ export class SegmentationGraph {
         const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue};
         const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue};
 
-        const parentX = parentCell.geometry.x;
-        const parentY = parentCell.geometry.y;
+        const parentX = parentVertex.geometry.x;
+        const parentY = parentVertex.geometry.y;
 
-        const leftCell = new mx.mxCell(leftSegmentObj,
-            new mx.mxGeometry(parentX - 100, parentY + 70, 150, 40), 'shape=rounded');
-        leftCell.setVertex(true);
+        const parentWidthHalf = parentVertex.geometry.width / 2;
 
-        const rightCell = new mx.mxCell(rightSegmentObj,
-            new mx.mxGeometry(parentX + 100, parentY + 70, 170, 40), 'shape=rounded');
-        rightCell.setVertex(true);
+        const leftVertex = new mx.mxCell(leftSegmentObj,
+            new mx.mxGeometry(parentX - 80 - parentWidthHalf, parentY + 70, 150, 40), 'shape=rounded');
+        leftVertex.setVertex(true);
 
-        return [leftCell, rightCell]
+        const rightVertex = new mx.mxCell(rightSegmentObj,
+            new mx.mxGeometry(parentX + 100 - parentWidthHalf, parentY + 70, 170, 40), 'shape=rounded');
+        rightVertex.setVertex(true);
+
+        return [leftVertex, rightVertex]
+    }
+
+    insertSegmentEdges(parentVertex, vertices) {
+        this.graphObj.getModel().beginUpdate();
+        try {
+            vertices.forEach((vertex) => {
+                this.graphObj
+                    .insertEdge(this.graphObj.getDefaultParent(), {}, 'd', parentVertex, vertex);
+            })
+        }
+        finally {
+            this.graphObj.getModel().endUpdate();
+        }
     }
 
 }
