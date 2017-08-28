@@ -18,26 +18,21 @@ export class SegmentationGraph {
 
         graph.setConnectable(true);
         graph.setMultigraph(false);
+        graph.setEnabled(false);
 
         graph.convertValueToString = function (cell) {
             return cell.value['title'] + ' ' + cell.value['segmentValue'];
         };
 
-        const keyHandler = new mx.mxKeyHandler(graph);
-
-        //todo layout?
-        //const layout = new mx.mxHierarchicalLayout(graph);
-        //layout.execute(parent);
-
-        graph.setEnabled(false);
-
         this.graphObj = graph;
+        this.keyHandler = new mx.mxKeyHandler(graph);
+        this.graphLayout = new mx.mxHierarchicalLayout(graph);
+
         return graph;
     }
 
     drawMainVertex() {
-        this.graphObj.getModel().beginUpdate();
-        try {
+        this.safeUpdate(() => {
             this.mainVertex = this.graphObj.insertVertex(
                 this.graphObj.getDefaultParent(),
                 null,
@@ -45,11 +40,9 @@ export class SegmentationGraph {
                     title: "All clients",
                     segmentValue: 2000000
                 },
-                300, 5, 100, 40);
-        }
-        finally {
-            this.graphObj.getModel().endUpdate();
-        }
+                0, 5, 100, 40);
+            this.graphLayout.execute(this.graphObj.getDefaultParent());
+        });
 
         return this.mainVertex;
     }
@@ -59,20 +52,30 @@ export class SegmentationGraph {
 
         const draggableElem = document.getElementById(id);
 
-        mx.mxUtils.makeDraggable(draggableElem, this.graphObj,
-            (graph, evt, cell) => {
-                graph.stopEditing(false);
+        const onDrop = (graph, evt, cell) => {
+            graph.stopEditing(false);
 
-                const pt = graph.getPointForEvent(evt);
-                //target segment cell
-                const targetCell = graph.getCellAt(pt.x, pt.y);
+            const pt = graph.getPointForEvent(evt);
+            //target segment cell
+            const targetCell = graph.getCellAt(pt.x, pt.y);
 
-                if (targetCell) {
-                    const verticesToAdd = this.createSegmentVertices(targetCell);
-                    graph.addCells(verticesToAdd);
-                    this.insertSegmentEdges(targetCell, verticesToAdd);
-                }
-            }, draggableElem);
+            if (targetCell) {
+                const verticesToAdd = this.createSegmentVertices(targetCell);
+                graph.addCells(verticesToAdd);
+                this.insertSegmentEdges(targetCell, verticesToAdd);
+                this.graphLayout.execute(this.graphObj.getDefaultParent());
+            }
+        };
+
+        this.graphDragSource = mx.mxUtils.makeDraggable(draggableElem, this.graphObj, onDrop, draggableElem);
+
+        const protoDragEnter = Object.getPrototypeOf(this.graphDragSource).dragEnter;
+        const onDragEnter = (graph, evt) => {
+            protoDragEnter();
+            console.log("dragEnter")
+        };
+
+        this.graphDragSource.dragEnter = onDragEnter
     }
 
     createSegmentVertices(parentVertex) {
@@ -84,29 +87,27 @@ export class SegmentationGraph {
         const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue};
         const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue};
 
-        const parentX = parentVertex.geometry.x;
-        const parentY = parentVertex.geometry.y;
-
-        const parentWidthHalf = parentVertex.geometry.width / 2;
-
-        const leftVertex = new mx.mxCell(leftSegmentObj,
-            new mx.mxGeometry(parentX - 80 - parentWidthHalf, parentY + 70, 150, 40), 'shape=rounded');
+        const leftVertex = new mx.mxCell(leftSegmentObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
         leftVertex.setVertex(true);
 
-        const rightVertex = new mx.mxCell(rightSegmentObj,
-            new mx.mxGeometry(parentX + 100 - parentWidthHalf, parentY + 70, 170, 40), 'shape=rounded');
+        const rightVertex = new mx.mxCell(rightSegmentObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
         rightVertex.setVertex(true);
 
         return [leftVertex, rightVertex]
     }
 
     insertSegmentEdges(parentVertex, vertices) {
+        this.safeUpdate(() => {
+            vertices.forEach((vertex) => {
+                this.graphObj.insertEdge(this.graphObj.getDefaultParent(), null, '', parentVertex, vertex);
+            })
+        })
+    }
+
+    safeUpdate(func) {
         this.graphObj.getModel().beginUpdate();
         try {
-            vertices.forEach((vertex) => {
-                this.graphObj
-                    .insertEdge(this.graphObj.getDefaultParent(), {}, 'd', parentVertex, vertex);
-            })
+            func()
         }
         finally {
             this.graphObj.getModel().endUpdate();
