@@ -38,7 +38,8 @@ export class SegmentationGraph {
                 null,
                 {
                     title: "All clients",
-                    segmentValue: 2000000
+                    segmentValue: 2000000,
+                    available: true
                 },
                 0, 5, 100, 40);
             this.graphLayout.execute(this.graphObj.getDefaultParent());
@@ -59,9 +60,13 @@ export class SegmentationGraph {
             //target segment cell
             const targetCell = graph.getCellAt(pt.x, pt.y);
 
-            if (targetCell) {
+            if (targetCell && targetCell.getValue().available) {
                 const verticesToAdd = this.createSegmentVertices(targetCell);
+                targetCell.getValue().available = false;
+                targetCell.setStyle(null);
+
                 graph.addCells(verticesToAdd);
+
                 this.insertSegmentEdges(targetCell, verticesToAdd);
                 this.graphLayout.execute(this.graphObj.getDefaultParent());
             }
@@ -70,9 +75,16 @@ export class SegmentationGraph {
         this.graphDragSource = mx.mxUtils.makeDraggable(draggableElem, this.graphObj, onDrop, draggableElem);
 
         const protoDragEnter = Object.getPrototypeOf(this.graphDragSource).dragEnter;
+
         const onDragEnter = (graph, evt) => {
-            protoDragEnter();
-            console.log("dragEnter")
+            //calling main onDragEnter method
+            protoDragEnter.call(this.graphDragSource, graph, evt);
+
+            const allCells = Object.values(graph.getModel().cells);
+            const availableCells = graph.getModel().filterCells(allCells, (cell) => cell.value && cell.value.available);
+
+            //add dashed border to all available cells
+            availableCells.forEach((val) => val.setStyle('border=3px dashed black'));
         };
 
         this.graphDragSource.dragEnter = onDragEnter
@@ -84,8 +96,8 @@ export class SegmentationGraph {
         const leftSegmentValue = Math.floor(Math.random() * (parentSegmentValue - 1)) + 1;
         const rightSegmentValue = parentSegmentValue - leftSegmentValue;
 
-        const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue};
-        const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue};
+        const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue, available: true};
+        const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue, available: true};
 
         const leftVertex = new mx.mxCell(leftSegmentObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
         leftVertex.setVertex(true);

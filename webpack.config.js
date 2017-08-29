@@ -11,6 +11,7 @@ module.exports = {
     },
 
     output: {
+        publicPath: '/',
         filename: '[name].js',
         path: helpers.root('dist')
     },
@@ -25,8 +26,8 @@ module.exports = {
             {
                 test: /\.css/,
                 use: ['style-loader', 'css-loader'],
-                include: [helpers.root('src', 'styles')]
-            },
+                include: [helpers.root('src')]
+            }
         ]
     },
 

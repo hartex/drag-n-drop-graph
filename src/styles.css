@@ -1,0 +1,13 @@
+#draggable {
+    background-color: aquamarine;
+    padding: 10px;
+    border: 1px solid darkorchid;
+    margin: 5px;
+    width: 60px;
+    cursor: pointer;
+}
+
+#graph-container {
+    width: 300px;
+    height: 300px;
+}
