@@ -19,6 +19,7 @@ export class SegmentationGraph {
         graph.setConnectable(true);
         graph.setMultigraph(false);
         graph.setEnabled(false);
+        graph.getView().updateStyle = true;
 
         graph.convertValueToString = function (cell) {
             return cell.value['title'] + ' ' + cell.value['segmentValue'];
@@ -27,6 +28,9 @@ export class SegmentationGraph {
         this.graphObj = graph;
         this.keyHandler = new mx.mxKeyHandler(graph);
         this.graphLayout = new mx.mxHierarchicalLayout(graph);
+
+        const cellStyle = graph.getView().getStates().getValues()[0].style;
+        this.defaultCellStyle = mx.mxUtils.clone(cellStyle);
 
         return graph;
     }
@@ -63,13 +67,14 @@ export class SegmentationGraph {
             if (targetCell && targetCell.getValue().available) {
                 const verticesToAdd = this.createSegmentVertices(targetCell);
                 targetCell.getValue().available = false;
-                targetCell.setStyle(null);
 
                 graph.addCells(verticesToAdd);
 
                 this.insertSegmentEdges(targetCell, verticesToAdd);
                 this.graphLayout.execute(this.graphObj.getDefaultParent());
             }
+
+            this.addStyles(this.getGraphCells(), {'fillColor': this.defaultCellStyle['fillColor']});
         };
 
         this.graphDragSource = mx.mxUtils.makeDraggable(draggableElem, this.graphObj, onDrop, draggableElem);
@@ -80,11 +85,11 @@ export class SegmentationGraph {
             //calling main onDragEnter method
             protoDragEnter.call(this.graphDragSource, graph, evt);
 
-            const allCells = Object.values(graph.getModel().cells);
-            const availableCells = graph.getModel().filterCells(allCells, (cell) => cell.value && cell.value.available);
+            const partitionedCells = this.partition(this.getGraphCells(), cell => cell.value && cell.value.available);
 
-            //add dashed border to all available cells
-            availableCells.forEach((val) => val.setStyle('border=3px dashed black'));
+            //add dashed border to all cells
+            this.addStyles(partitionedCells[0], {'fillColor': '#63dd62'});
+            this.addStyles(partitionedCells[1], {'fillColor': '#d0d0d0'});
         };
 
         this.graphDragSource.dragEnter = onDragEnter
@@ -92,20 +97,17 @@ export class SegmentationGraph {
 
     createSegmentVertices(parentVertex) {
         const parentSegmentValue = parentVertex.getValue()['segmentValue'];
-
         const leftSegmentValue = Math.floor(Math.random() * (parentSegmentValue - 1)) + 1;
         const rightSegmentValue = parentSegmentValue - leftSegmentValue;
 
-        const leftSegmentObj = {title: "segment with value: ", segmentValue: leftSegmentValue, available: true};
-        const rightSegmentObj = {title: "segment with value: ", segmentValue: rightSegmentValue, available: true};
+        return [this.createSegmentVertex(leftSegmentValue), this.createSegmentVertex(rightSegmentValue)]
+    }
 
-        const leftVertex = new mx.mxCell(leftSegmentObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
-        leftVertex.setVertex(true);
-
-        const rightVertex = new mx.mxCell(rightSegmentObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
-        rightVertex.setVertex(true);
-
-        return [leftVertex, rightVertex]
+    createSegmentVertex(segmentValue) {
+        const segmentValueObj = {title: "segment with value: ", segmentValue: segmentValue, available: true};
+        const vertex = new mx.mxCell(segmentValueObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
+        vertex.setVertex(true);
+        return vertex;
     }
 
     insertSegmentEdges(parentVertex, vertices) {
@@ -114,6 +116,39 @@ export class SegmentationGraph {
                 this.graphObj.insertEdge(this.graphObj.getDefaultParent(), null, '', parentVertex, vertex);
             })
         })
+    }
+
+    addStyles(cells, styles, predicate) {
+        if (cells) {
+            cells.forEach((cell) => {
+                if ((predicate && predicate(cells)) || !predicate) {
+                    const cellState = this.graphObj.getView().getState(cell);
+
+                    for (let style in styles) {
+                        cellState.style[style] = styles[style]
+                    }
+
+                    if (cellState.shape) {
+                        cellState.shape.apply(cellState);
+                        cellState.shape.redraw();
+                    }
+                }
+            });
+        }
+    }
+
+    getGraphCells() {
+        return Object.values(this.graphObj.getModel().cells);
+    }
+
+    partition(array, predicate) {
+        const truthy = [];
+        const falsy = [];
+        array.forEach(elem => {
+            if (predicate(elem)) truthy.push(elem);
+            else falsy.push(elem)
+        });
+        return [truthy, falsy]
     }
 
     safeUpdate(func) {
