@@ -21,8 +21,16 @@ export class SegmentationGraph {
         graph.setEnabled(false);
         graph.getView().updateStyle = true;
 
+
+        const convertValueToStringDefault = graph.convertValueToString;
+
         graph.convertValueToString = function (cell) {
-            return cell.value['title'] + ' ' + cell.value['segmentValue'];
+            if (cell.isEdge()) {
+                return '';
+                //convertValueToStringDefault.apply(cell)
+            } else {
+                return cell.value['title'] + ' ' + cell.value['segmentValue'];
+            }
         };
 
         this.graphObj = graph;
