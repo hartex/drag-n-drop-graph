@@ -1,7 +1,7 @@
 {
   "name": "drag-n-drop-graph",
   "version": "0.1.0",
-  "description": "Simple app for testing mxGraph and dragula capabilities together",
+  "description": "Simple app for testing mxGraph capabilities",
   "main": "main.js",
   "scripts": {
     "dev": "webpack-dev-server --inline --progress"
