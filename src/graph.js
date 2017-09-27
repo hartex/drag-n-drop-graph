@@ -7,6 +7,7 @@ export class SegmentationGraph {
 
     constructor(id) {
         this.container = document.getElementById(id);
+        this.conditionsCounter = 1;
     }
 
     init() {
@@ -28,8 +29,11 @@ export class SegmentationGraph {
             if (cell.isEdge()) {
                 return '';
                 //convertValueToStringDefault.apply(cell)
-            } else {
-                return cell.value['title'] + ' ' + cell.value['segmentValue'];
+            } else if (cell.value['type'] = 'segment') {
+                return cell.value['title'] + ' ' + cell.value['value'];
+            }
+            else {
+                return cell.value['title'] + ' ' + cell.value['value'];
             }
         };
 
@@ -50,7 +54,8 @@ export class SegmentationGraph {
                 null,
                 {
                     title: "All clients",
-                    segmentValue: 2000000,
+                    type: 'segment',
+                    value: 2000000,
                     available: true
                 },
                 0, 5, 100, 40);
@@ -73,12 +78,17 @@ export class SegmentationGraph {
             const targetCell = graph.getCellAt(pt.x, pt.y);
 
             if (targetCell && targetCell.getValue().available) {
+
+                //condition cell
+                const conditionVertex = graph.addCell(this.createConditionVertex('A'));
+                this.insertEdges(targetCell, [conditionVertex]);
+
                 const verticesToAdd = this.createSegmentVertices(targetCell);
                 targetCell.getValue().available = false;
 
                 graph.addCells(verticesToAdd);
 
-                this.insertSegmentEdges(targetCell, verticesToAdd);
+                this.insertEdges(conditionVertex, verticesToAdd);
                 this.graphLayout.execute(this.graphObj.getDefaultParent());
             }
 
@@ -104,7 +114,7 @@ export class SegmentationGraph {
     }
 
     createSegmentVertices(parentVertex) {
-        const parentSegmentValue = parentVertex.getValue()['segmentValue'];
+        const parentSegmentValue = parentVertex.getValue()['value'];
         const leftSegmentValue = Math.floor(Math.random() * (parentSegmentValue - 1)) + 1;
         const rightSegmentValue = parentSegmentValue - leftSegmentValue;
 
@@ -112,13 +122,32 @@ export class SegmentationGraph {
     }
 
     createSegmentVertex(segmentValue) {
-        const segmentValueObj = {title: "segment with value: ", segmentValue: segmentValue, available: true};
-        const vertex = new mx.mxCell(segmentValueObj, new mx.mxGeometry(0, 0, 160, 40), 'shape=rounded');
+        const segmentValueObj = {
+            title: "Node with value: ",
+            type: 'segment',
+            value: segmentValue,
+            available: true
+        };
+        const vertex = new mx.mxCell(segmentValueObj, new mx.mxGeometry(0, 0, 160, 40), mx.mxConstants.STYLE_SHAPE + '=' + mx.mxConstants.STYLE_ROUNDED);
         vertex.setVertex(true);
         return vertex;
     }
 
-    insertSegmentEdges(parentVertex, vertices) {
+    createConditionVertex() {
+        const conditionValueObj = {
+            title: "Condition: ",
+            type: 'condition',
+            value: this.conditionsCounter,
+            available: false
+        };
+        const vertex = new mx.mxCell(conditionValueObj, new mx.mxGeometry(0, 0, 130, 50), mx.mxConstants.STYLE_SHAPE + '=' + mx.mxConstants.SHAPE_RHOMBUS);
+        vertex.setVertex(true);
+
+        this.conditionsCounter++;
+        return vertex;
+    }
+
+    insertEdges(parentVertex, vertices) {
         this.safeUpdate(() => {
             vertices.forEach((vertex) => {
                 this.graphObj.insertEdge(this.graphObj.getDefaultParent(), null, '', parentVertex, vertex);
