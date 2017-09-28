@@ -11,8 +11,8 @@ export class SegmentationGraph {
     }
 
     init() {
-        mx.mxGraph.prototype.collapsedImage = new mx.mxImage('images/collapsed.gif', 9, 9);
-        mx.mxGraph.prototype.expandedImage = new mx.mxImage('images/expanded.gif', 9, 9);
+        mx.mxGraph.prototype.collapsedImage = new mx.mxImage('/assets/img/collapsed.gif', 9, 9);
+        mx.mxGraph.prototype.expandedImage = new mx.mxImage('/assets/img/expanded.gif', 9, 9);
 
         /**
          * mxGraph set up
@@ -145,12 +145,12 @@ export class SegmentationGraph {
         return this.mainVertex;
     }
 
-    makeDraggable(id) {
+    makeDraggable(id, onDrop) {
         this.graphObj.dropEnabled = true;
 
         const draggableElem = document.getElementById(id);
 
-        const onDrop = (graph, evt, cell) => {
+        const onDropDefault = (graph, evt, cell) => {
             graph.stopEditing(false);
 
             const pt = graph.getPointForEvent(evt);
@@ -175,7 +175,8 @@ export class SegmentationGraph {
             this.addStyles(this.getGraphCells(), {'fillColor': this.defaultCellStyle['fillColor']});
         };
 
-        this.graphDragSource = mx.mxUtils.makeDraggable(draggableElem, this.graphObj, onDrop, draggableElem);
+        this.graphDragSource = mx.mxUtils
+            .makeDraggable(draggableElem, this.graphObj, onDrop ? onDrop : onDropDefault, draggableElem);
 
         const protoDragEnter = Object.getPrototypeOf(this.graphDragSource).dragEnter;
 
@@ -191,6 +192,33 @@ export class SegmentationGraph {
         };
 
         this.graphDragSource.dragEnter = onDragEnter
+    }
+
+    makeDraggableWithCombine(id) {
+        this.makeDraggable(id, (graph, evt, cell) => {
+            graph.stopEditing(false);
+
+            const pt = graph.getPointForEvent(evt);
+            //target segment cell
+            const targetCell = graph.getCellAt(pt.x, pt.y);
+
+            if (targetCell && targetCell.getValue().available) {
+                const verticesToAdd = this.createSegmentVertices(targetCell);
+                targetCell.getValue().available = false;
+
+                graph.addCells(verticesToAdd);
+
+                this.insertEdges(targetCell, verticesToAdd);
+
+                this.safeUpdate(() => {
+                    this.graphObj.insertEdge(this.graphObj.getDefaultParent(), null, '', verticesToAdd[0], verticesToAdd[1], 'endArrow=none');
+                });
+
+                this.graphLayout.execute(this.graphObj.getDefaultParent());
+            }
+
+            this.addStyles(this.getGraphCells(), {'fillColor': this.defaultCellStyle['fillColor']});
+        })
     }
 
     createSegmentVertices(parentVertex) {

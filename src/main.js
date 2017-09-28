@@ -1,6 +1,6 @@
-import 'styles.css'
-import '../images/collapsed.gif'
-import '../images/expanded.gif'
+import './styles.css'
+import '../assets/img/collapsed.gif'
+import '../assets/img/expanded.gif'
 
 import {SegmentationGraph} from 'graph'
 
@@ -9,4 +9,5 @@ import {SegmentationGraph} from 'graph'
     graph.init();
     graph.drawMainVertex();
     graph.makeDraggable('draggable');
+    graph.makeDraggableWithCombine('draggable-combine');
 })();

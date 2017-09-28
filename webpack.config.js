@@ -1,6 +1,7 @@
 const helpers = require('./config/helpers');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     devtool: 'cheap-module-source-map',
@@ -31,11 +32,13 @@ module.exports = {
             {
                 test: /\.(jpg|png|gif)$/,
                 use: 'file-loader'
-            },
+            }
         ]
     },
 
     plugins: [
+        new CopyWebpackPlugin([{from: 'assets', to: 'assets'}]),
+
         new webpack.HotModuleReplacementPlugin(),
         new webpack.LoaderOptionsPlugin({
             debug: true,
