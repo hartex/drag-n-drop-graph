@@ -11,12 +11,17 @@ export class SegmentationGraph {
     }
 
     init() {
+        mx.mxGraph.prototype.collapsedImage = new mx.mxImage('images/collapsed.gif', 9, 9);
+        mx.mxGraph.prototype.expandedImage = new mx.mxImage('images/expanded.gif', 9, 9);
+
         /**
          * mxGraph set up
          * */
         const model = new mx.mxGraphModel();
         const graph = new mx.mxGraph(this.container, model);
 
+
+        graph.setAutoSizeCells(true);
         graph.setConnectable(true);
         graph.setMultigraph(false);
         graph.setEnabled(false);
@@ -41,10 +46,85 @@ export class SegmentationGraph {
         this.keyHandler = new mx.mxKeyHandler(graph);
         this.graphLayout = new mx.mxHierarchicalLayout(graph);
 
+        this.initCellsFolding();
+
         const cellStyle = graph.getView().getStates().getValues()[0].style;
         this.defaultCellStyle = mx.mxUtils.clone(cellStyle);
 
         return graph;
+    }
+
+    initCellsFolding() {
+        const graph = this.graphObj;
+        const safeUpdate = this.safeUpdate;
+
+        // Defines the condition for showing the folding icon
+        graph.isCellFoldable = function (cell) {
+            return this.model.getOutgoingEdges(cell).length > 0;
+        };
+
+        // Defines the position of the folding icon
+        graph.cellRenderer.getControlBounds = function (state) {
+            if (state.control != null) {
+                const oldScale = state.control.scale;
+                const w = state.control.bounds.width / oldScale;
+                const h = state.control.bounds.height / oldScale;
+                const s = state.view.scale;
+
+                return new mx.mxRectangle(state.x + state.width / 2 - w / 2 * s,
+                    state.y + state.height + 20 * s - h / 2 * s,
+                    w * s, h * s);
+            }
+
+            return null;
+        };
+
+        // Implements the click on a folding icon
+        graph.foldCells = function (collapse, recurse, cells) {
+
+
+            // Updates the visible state of a given subtree taking into
+            // account the collapsed state of the traversed branches
+            function toggleSubtree(graph, cell, show) {
+                show = (show != null) ? show : true;
+                var cells = [];
+
+                graph.traverse(cell, true, function (vertex) {
+                    if (vertex != cell) {
+                        cells.push(vertex);
+                    }
+
+                    // Stops recursion if a collapsed cell is seen
+                    return vertex == cell || !graph.isCellCollapsed(vertex);
+                });
+
+                graph.toggleCells(show, cells, true);
+            };
+
+
+            /*safeUpdate(() => {
+                toggleSubtree(this, cells[0], !collapse);
+                this.model.setCollapsed(cells[0], collapse);
+
+                // Executes the layout for the new graph since
+                // changes to visiblity and collapsed state do
+                // not trigger a layout in the current manager.
+                layout.execute(graph.getDefaultParent());
+            });*/
+            this.model.beginUpdate();
+            try {
+                toggleSubtree(this, cells[0], !collapse);
+                this.model.setCollapsed(cells[0], collapse);
+
+                // Executes the layout for the new graph since
+                // changes to visiblity and collapsed state do
+                // not trigger a layout in the current manager.
+                layout.execute(graph.getDefaultParent());
+            }
+            finally {
+                this.model.endUpdate();
+            }
+        };
     }
 
     drawMainVertex() {

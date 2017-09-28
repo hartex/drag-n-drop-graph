@@ -27,7 +27,11 @@ module.exports = {
                 test: /\.css/,
                 use: ['style-loader', 'css-loader'],
                 include: [helpers.root('src')]
-            }
+            },
+            {
+                test: /\.(jpg|png|gif)$/,
+                use: 'file-loader'
+            },
         ]
     },
 

@@ -1,4 +1,6 @@
 import 'styles.css'
+import '../images/collapsed.gif'
+import '../images/expanded.gif'
 
 import {SegmentationGraph} from 'graph'
 
